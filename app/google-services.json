@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "115013481286",
+    "firebase_url": "https://smartdrive-3a94a.firebaseio.com",
+    "project_id": "smartdrive-3a94a",
+    "storage_bucket": "smartdrive-3a94a.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:115013481286:android:a7502088e8900612",
+        "android_client_info": {
+          "package_name": "ml.rushabh.smartdrive"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "115013481286-jjcpogdnu2s6g6ullu0lbcvgmpa199tf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "ml.rushabh.smartdrive",
+            "certificate_hash": "632254898d22aec75d7c0da2e6da619f4b57996c"
+          }
+        },
+        {
+          "client_id": "115013481286-n5d4ddhja47hca0cb391bolpoh0b4hhr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBkR1ALUrMiI8tLmM5FDDJClZe5MLKIpnA"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "115013481286-n5d4ddhja47hca0cb391bolpoh0b4hhr.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
