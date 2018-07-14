@@ -1,6 +1,8 @@
 package ml.rushabh.smartdrive;
 
 import android.content.Intent;
+import android.os.Parcelable;
+import android.os.PersistableBundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -42,12 +44,17 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView mRecyclerView;
     private ProgressBar mProgressBar;
 
+
+    private static final String BUNDLE_RECYCLER_LAYOUT = "classname.recycler.layout";
+
+    private LinearLayoutManager mLinearLayoutManager;
+
     private FirebaseRecyclerAdapter mAdapter;
     private FirebaseUser mUser;
     private DatabaseReference mDatabase;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mUser = FirebaseAuth.getInstance().getCurrentUser();
         if (mUser == null) {
@@ -61,11 +68,20 @@ public class MainActivity extends AppCompatActivity {
             mMessage = (EditText) findViewById(R.id.message_ET);
             mSend = (Button) findViewById(R.id.submit_btn);
 
-            mDatabase = FirebaseDatabase.getInstance().getReference(mUser.getUid());
+            mDatabase = FirebaseDatabase.getInstance().getReference("users").child(mUser.getUid());
 
 
             mRecyclerView = (RecyclerView)findViewById(R.id.list_rv);
-            mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+            mLinearLayoutManager = new LinearLayoutManager(this);
+            mLinearLayoutManager.setStackFromEnd(true);
+            mRecyclerView.setHasFixedSize(true);
+            mRecyclerView.setLayoutManager(mLinearLayoutManager);
+
+            if(savedInstanceState != null){
+                Parcelable savedRecyclerLayoutState = savedInstanceState.getParcelable(BUNDLE_RECYCLER_LAYOUT);
+                mRecyclerView.getLayoutManager().onRestoreInstanceState(savedRecyclerLayoutState);
+            }
+
 
             mSend.setEnabled(true);
 
@@ -112,10 +128,11 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
-            Query query = FirebaseDatabase.getInstance()
-                    .getReference(mUser.getUid())
+             final Query query = FirebaseDatabase.getInstance()
+                    .getReference("users")
+                    .child(mUser.getUid())
                     .child("messages")
-                    .limitToLast(50);
+                    .limitToLast(30);
 
             FirebaseRecyclerOptions<Message> options = new FirebaseRecyclerOptions.Builder<Message>()
                     .setQuery(query, Message.class)
@@ -138,14 +155,20 @@ public class MainActivity extends AppCompatActivity {
 
                     holder.setValues(message);
                 }
+
+                @Override
+                public int getItemCount() {
+                    return super.getItemCount();
+                }
             };
 
             mRecyclerView.setAdapter(mAdapter);
 
+
             ChildEventListener childEventListener = new ChildEventListener() {
                 @Override
                 public void onChildAdded(DataSnapshot dataSnapshot, String previousChildName) {
-                    mRecyclerView.getLayoutManager().scrollToPosition(mAdapter.getItemCount());
+                    mLinearLayoutManager.onRestoreInstanceState(savedInstanceState);
                 }
 
                 @Override
@@ -171,7 +194,10 @@ public class MainActivity extends AppCompatActivity {
             query.addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+
                     mProgressBar.setVisibility(View.INVISIBLE);
+
+
 
                 }
 
@@ -181,6 +207,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
             query.addChildEventListener(childEventListener);
+            mRecyclerView.getLayoutManager().scrollToPosition(mAdapter.getItemCount());
 
 
 
@@ -208,12 +235,22 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
+    @Override
+    public void onSaveInstanceState(Bundle outState, PersistableBundle outPersistentState) {
+        super.onSaveInstanceState(outState, outPersistentState);
+        outState.putParcelable(BUNDLE_RECYCLER_LAYOUT, mRecyclerView.getLayoutManager().onSaveInstanceState());
+
+    }
 
     @Override
     protected void onStart() {
         super.onStart();
         mAdapter.startListening();
+        mLinearLayoutManager.scrollToPosition(mAdapter.getItemCount());
+
     }
+
+
 
     @Override
     protected void onStop() {

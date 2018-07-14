@@ -11,6 +11,8 @@ import com.firebase.ui.auth.AuthUI;
 import com.firebase.ui.auth.IdpResponse;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.Arrays;
 import java.util.List;
@@ -20,6 +22,8 @@ public class SignInActivity extends AppCompatActivity {
     private static Button signIn;
     private static final int RC_SIGN_IN = 1;
     private FirebaseUser mUser;
+
+    private DatabaseReference mDatabase;
 
 
     @Override
@@ -53,6 +57,10 @@ public class SignInActivity extends AppCompatActivity {
             if(resultCode == RESULT_OK){
 
                 mUser = FirebaseAuth.getInstance().getCurrentUser();
+                mDatabase = FirebaseDatabase.getInstance().getReference("users").child(mUser.getUid());
+                mDatabase.child("name").setValue(mUser.getDisplayName());
+                mDatabase.child("emailId").setValue(mUser.getEmail());
+
 
                 Intent intent = new Intent(this,MainActivity.class);
                 startActivity(intent);
