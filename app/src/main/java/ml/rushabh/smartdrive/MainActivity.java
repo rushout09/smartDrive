@@ -44,6 +44,8 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView mRecyclerView;
     private ProgressBar mProgressBar;
 
+    public static int index = -1;
+    public static int top = -1;
 
     private static final String BUNDLE_RECYCLER_LAYOUT = "classname.recycler.layout";
 
@@ -168,7 +170,12 @@ public class MainActivity extends AppCompatActivity {
             ChildEventListener childEventListener = new ChildEventListener() {
                 @Override
                 public void onChildAdded(DataSnapshot dataSnapshot, String previousChildName) {
-                    mLinearLayoutManager.onRestoreInstanceState(savedInstanceState);
+                    //mLinearLayoutManager.scrollToPosition(mAdapter.getItemCount());
+                    //mLinearLayoutManager.onRestoreInstanceState(savedInstanceState);
+
+
+                        mLinearLayoutManager.scrollToPositionWithOffset(mLinearLayoutManager.findLastVisibleItemPosition(),top);
+
                 }
 
                 @Override
@@ -207,7 +214,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
             query.addChildEventListener(childEventListener);
-            mRecyclerView.getLayoutManager().scrollToPosition(mAdapter.getItemCount());
 
 
 
@@ -246,11 +252,24 @@ public class MainActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         mAdapter.startListening();
-        mLinearLayoutManager.scrollToPosition(mAdapter.getItemCount());
-
+        mLinearLayoutManager.setStackFromEnd(true);
     }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        index = mLinearLayoutManager.findLastVisibleItemPosition();
+        View v = mRecyclerView.getChildAt(0);
+        top = (v ==null)?0:(v.getTop()-mRecyclerView.getPaddingTop());
+    }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if(index != -1){
+            mLinearLayoutManager.scrollToPositionWithOffset(index,top);
+        }
+    }
 
     @Override
     protected void onStop() {

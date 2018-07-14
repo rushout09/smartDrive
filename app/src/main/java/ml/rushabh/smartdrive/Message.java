@@ -7,6 +7,7 @@ public class Message {
     private String senderUid;
     private String senderName;
     private long timeStamp;
+    private String nodeKey;
 
     public Message(){
 
@@ -21,6 +22,14 @@ public class Message {
 
     public String getBody() {
         return body;
+    }
+
+    public String getNodeKey() {
+        return nodeKey;
+    }
+
+    public void setNodeKey(String nodeKey) {
+        this.nodeKey = nodeKey;
     }
 
     public String getSenderUid() {
