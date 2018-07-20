@@ -44,11 +44,6 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView mRecyclerView;
     private ProgressBar mProgressBar;
 
-    public static int index = -1;
-    public static int top = -1;
-
-    private static final String BUNDLE_RECYCLER_LAYOUT = "classname.recycler.layout";
-
     private LinearLayoutManager mLinearLayoutManager;
 
     private FirebaseRecyclerAdapter mAdapter;
@@ -59,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mUser = FirebaseAuth.getInstance().getCurrentUser();
+
         if (mUser == null) {
             startActivity(new Intent(this, SignInActivity.class));
             finish();
@@ -73,17 +69,12 @@ public class MainActivity extends AppCompatActivity {
             mDatabase = FirebaseDatabase.getInstance().getReference("users").child(mUser.getUid());
 
 
+
             mRecyclerView = (RecyclerView)findViewById(R.id.list_rv);
             mLinearLayoutManager = new LinearLayoutManager(this);
             mLinearLayoutManager.setStackFromEnd(true);
             mRecyclerView.setHasFixedSize(true);
             mRecyclerView.setLayoutManager(mLinearLayoutManager);
-
-            if(savedInstanceState != null){
-                Parcelable savedRecyclerLayoutState = savedInstanceState.getParcelable(BUNDLE_RECYCLER_LAYOUT);
-                mRecyclerView.getLayoutManager().onRestoreInstanceState(savedRecyclerLayoutState);
-            }
-
 
             mSend.setEnabled(true);
 
@@ -92,21 +83,10 @@ public class MainActivity extends AppCompatActivity {
                 public void onClick(View v) {
                     if (mMessage.getText() == null || mMessage.getText().toString().trim().isEmpty()) {
                     } else {
-                        mSend.setEnabled(false);
+
                         Message message = new Message(mMessage.getText().toString().trim(), mUser.getUid().toString(), mUser.getDisplayName().toString());
-                        mDatabase.child("messages").push().setValue(message).addOnSuccessListener(new OnSuccessListener<Void>() {
-                            @Override
-                            public void onSuccess(Void aVoid) {
-                                mSend.setEnabled(true);
-                                mMessage.setText("");
-                            }
-                        }).addOnFailureListener(new OnFailureListener() {
-                            @Override
-                            public void onFailure(@NonNull Exception e) {
-                                Toast.makeText(getApplicationContext(), "Message not sent.", Toast.LENGTH_SHORT).show();
-                                mSend.setEnabled(true);
-                            }
-                        });
+                        mDatabase.child("messages").push().setValue(message);
+                        mMessage.setText("");
                     }
                 }
             });
@@ -130,11 +110,9 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
-             final Query query = FirebaseDatabase.getInstance()
-                    .getReference("users")
-                    .child(mUser.getUid())
-                    .child("messages")
-                    .limitToLast(30);
+
+             final Query query = mDatabase
+                    .child("messages");
 
             FirebaseRecyclerOptions<Message> options = new FirebaseRecyclerOptions.Builder<Message>()
                     .setQuery(query, Message.class)
@@ -170,11 +148,7 @@ public class MainActivity extends AppCompatActivity {
             ChildEventListener childEventListener = new ChildEventListener() {
                 @Override
                 public void onChildAdded(DataSnapshot dataSnapshot, String previousChildName) {
-                    //mLinearLayoutManager.scrollToPosition(mAdapter.getItemCount());
-                    //mLinearLayoutManager.onRestoreInstanceState(savedInstanceState);
-
-
-                        mLinearLayoutManager.scrollToPositionWithOffset(mLinearLayoutManager.findLastVisibleItemPosition(),top);
+                    mLinearLayoutManager.scrollToPosition(mAdapter.getItemCount());
 
                 }
 
@@ -203,8 +177,6 @@ public class MainActivity extends AppCompatActivity {
                 public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
 
                     mProgressBar.setVisibility(View.INVISIBLE);
-
-
 
                 }
 
@@ -241,34 +213,13 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
-    @Override
-    public void onSaveInstanceState(Bundle outState, PersistableBundle outPersistentState) {
-        super.onSaveInstanceState(outState, outPersistentState);
-        outState.putParcelable(BUNDLE_RECYCLER_LAYOUT, mRecyclerView.getLayoutManager().onSaveInstanceState());
-
-    }
 
     @Override
     protected void onStart() {
         super.onStart();
         mAdapter.startListening();
-        mLinearLayoutManager.setStackFromEnd(true);
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        index = mLinearLayoutManager.findLastVisibleItemPosition();
-        View v = mRecyclerView.getChildAt(0);
-        top = (v ==null)?0:(v.getTop()-mRecyclerView.getPaddingTop());
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if(index != -1){
-            mLinearLayoutManager.scrollToPositionWithOffset(index,top);
-        }
+        //mLinearLayoutManager.setStackFromEnd(true);
+        mLinearLayoutManager.scrollToPosition(mAdapter.getItemCount());
     }
 
     @Override
