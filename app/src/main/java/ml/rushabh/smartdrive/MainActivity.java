@@ -40,6 +40,7 @@ import com.google.firebase.database.ValueEventListener;
 public class MainActivity extends AppCompatActivity {
 
     private Button mSend;
+    private Button mHash;
     private EditText mMessage;
     private RecyclerView mRecyclerView;
     private ProgressBar mProgressBar;
@@ -49,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
     private FirebaseRecyclerAdapter mAdapter;
     private FirebaseUser mUser;
     private DatabaseReference mDatabase;
+    private DatabaseReference mTagReference;
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -65,8 +67,10 @@ public class MainActivity extends AppCompatActivity {
             mProgressBar = (ProgressBar)findViewById(R.id.loading_pb);
             mMessage = (EditText) findViewById(R.id.message_ET);
             mSend = (Button) findViewById(R.id.submit_btn);
+            mHash = (Button)findViewById(R.id.hash_btn);
 
-            mDatabase = FirebaseDatabase.getInstance().getReference("users").child(mUser.getUid());
+            mDatabase = FirebaseDatabase.getInstance().getReference("users").child(mUser.getUid()).child("messages");
+            mTagReference = FirebaseDatabase.getInstance().getReference("users").child(mUser.getUid()).child("tags");
 
 
 
@@ -78,14 +82,32 @@ public class MainActivity extends AppCompatActivity {
 
             mSend.setEnabled(true);
 
+            mHash.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    mMessage.append(mMessage.getText().toString()+"#");
+                }
+            });
+
             mSend.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     if (mMessage.getText() == null || mMessage.getText().toString().trim().isEmpty()) {
                     } else {
+                        String msgText = mMessage.getText().toString().trim();
+                        String tagName = "general";
+                        Message message;
+                        Tag tag;
+                        if(msgText.startsWith("#")) {
 
-                        Message message = new Message(mMessage.getText().toString().trim(), mUser.getUid().toString(), mUser.getDisplayName().toString());
-                        mDatabase.child("messages").push().setValue(message);
+                            tagName = msgText.substring(1, msgText.indexOf(" "));
+                        }
+
+                        message = new Message(msgText.trim(), mUser.getUid().toString(), mUser.getDisplayName().toString(),tagName);
+                        tag = new Tag(tagName,message);
+                        mDatabase.push().setValue(message);
+                        mTagReference.child(tagName).push().setValue(message);
+
                         mMessage.setText("");
                     }
                 }
@@ -111,8 +133,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
 
-             final Query query = mDatabase
-                    .child("messages");
+             final Query query = mDatabase;
 
             FirebaseRecyclerOptions<Message> options = new FirebaseRecyclerOptions.Builder<Message>()
                     .setQuery(query, Message.class)

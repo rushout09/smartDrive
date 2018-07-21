@@ -6,17 +6,19 @@ public class Message {
     private String body;
     private String senderUid;
     private String senderName;
+    private String tag;
     private long timeStamp;
 
     public Message(){
 
     }
 
-    public Message(String body,String senderUid, String senderName){
+    public Message(String body,String senderUid, String senderName, String tag){
         this.body = body;
         this.senderUid = senderUid;
         this.senderName = senderName;
         this.timeStamp = new Date().getTime();
+        this.tag = tag;
     }
 
     public String getBody() {
