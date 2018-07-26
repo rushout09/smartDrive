@@ -3,6 +3,7 @@ package ml.rushabh.smartdrive;
 import android.content.Intent;
 import android.os.Parcelable;
 import android.os.PersistableBundle;
+import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -17,6 +18,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Filter;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -39,79 +42,64 @@ import com.google.firebase.database.ValueEventListener;
 
 public class MainActivity extends AppCompatActivity {
 
-    private Button mSend;
-    private Button mHash;
+    //Declaring Instances of widgets on Main Activity.
+    private ImageButton mSend;
+    private ImageButton mSearch;
     private EditText mMessage;
     private RecyclerView mRecyclerView;
     private ProgressBar mProgressBar;
-
     private LinearLayoutManager mLinearLayoutManager;
 
+    //Declaring Firebase Instances.
     private FirebaseRecyclerAdapter mAdapter;
     private FirebaseUser mUser;
     private DatabaseReference mDatabase;
-    private DatabaseReference mTagReference;
+
+
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        //Getting current user, if any.
         mUser = FirebaseAuth.getInstance().getCurrentUser();
-
+        //If user is null, start SignIn Activity.
         if (mUser == null) {
             startActivity(new Intent(this, SignInActivity.class));
             finish();
         }
+        //Else, continue to Main Activity.
         else {
             setContentView(R.layout.activity_main);
-
+            //Initializing Main Activity widgets.
             mProgressBar = (ProgressBar)findViewById(R.id.loading_pb);
             mMessage = (EditText) findViewById(R.id.message_ET);
-            mSend = (Button) findViewById(R.id.submit_btn);
-            mHash = (Button)findViewById(R.id.hash_btn);
+            mSend = (ImageButton) findViewById(R.id.submit_btn);
+            mSearch = (ImageButton)findViewById(R.id.search_btn);
 
+            //Setting Database reference.
             mDatabase = FirebaseDatabase.getInstance().getReference("users").child(mUser.getUid()).child("messages");
-            mTagReference = FirebaseDatabase.getInstance().getReference("users").child(mUser.getUid()).child("tags");
-
-
-
+            //Initializing RecyclerView and Layout Manager.
             mRecyclerView = (RecyclerView)findViewById(R.id.list_rv);
             mLinearLayoutManager = new LinearLayoutManager(this);
             mLinearLayoutManager.setStackFromEnd(true);
             mRecyclerView.setHasFixedSize(true);
             mRecyclerView.setLayoutManager(mLinearLayoutManager);
 
-            mSend.setEnabled(true);
-
-            mHash.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    mMessage.append(mMessage.getText().toString()+"#");
-                }
-            });
-
             mSend.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     if (mMessage.getText() == null || mMessage.getText().toString().trim().isEmpty()) {
                     } else {
+                        //Create message String, message Object and push into database.
                         String msgText = mMessage.getText().toString().trim();
-                        String tagName = "general";
-                        Message message;
-                        Tag tag;
-                        if(msgText.startsWith("#")) {
-
-                            tagName = msgText.substring(1, msgText.indexOf(" "));
-                        }
-
-                        message = new Message(msgText.trim(), mUser.getUid().toString(), mUser.getDisplayName().toString(),tagName);
-                        tag = new Tag(tagName,message);
+                        Message message = new Message(msgText.trim(), mUser.getUid().toString(), mUser.getDisplayName().toString());
                         mDatabase.push().setValue(message);
-                        mTagReference.child(tagName).push().setValue(message);
-
+                        //Clear EditText after send.
                         mMessage.setText("");
                     }
                 }
             });
+
 
             class MessageHolder extends RecyclerView.ViewHolder {
 
@@ -133,7 +121,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
 
-             final Query query = mDatabase;
+            Query query = mDatabase;
 
             FirebaseRecyclerOptions<Message> options = new FirebaseRecyclerOptions.Builder<Message>()
                     .setQuery(query, Message.class)
@@ -151,9 +139,7 @@ public class MainActivity extends AppCompatActivity {
 
                 @Override
                 protected void onBindViewHolder(@NonNull MessageHolder holder, int position, @NonNull Message model) {
-
                     Message message = getItem(position);
-
                     holder.setValues(message);
                 }
 
@@ -161,6 +147,7 @@ public class MainActivity extends AppCompatActivity {
                 public int getItemCount() {
                     return super.getItemCount();
                 }
+
             };
 
             mRecyclerView.setAdapter(mAdapter);
@@ -170,40 +157,28 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onChildAdded(DataSnapshot dataSnapshot, String previousChildName) {
                     mLinearLayoutManager.scrollToPosition(mAdapter.getItemCount());
-
                 }
-
                 @Override
                 public void onChildChanged(DataSnapshot dataSnapshot, String previousChildName) {
-
                 }
-
                 @Override
                 public void onChildRemoved(DataSnapshot dataSnapshot) {
-                    // ...
                 }
-
                 @Override
                 public void onChildMoved(DataSnapshot dataSnapshot, String previousChildName) {
-                    // ...
                 }
-
                 @Override
                 public void onCancelled(DatabaseError databaseError) {
-                    // ...
+
                 }
             };
             query.addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-
                     mProgressBar.setVisibility(View.INVISIBLE);
-
                 }
-
                 @Override
                 public void onCancelled(@NonNull DatabaseError databaseError) {
-
                 }
             });
             query.addChildEventListener(childEventListener);
@@ -212,7 +187,7 @@ public class MainActivity extends AppCompatActivity {
 
         }
     }
-
+    // Create and inflate Menu.
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater menuInflater = getMenuInflater();
@@ -220,10 +195,12 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
+    // Sign-out menu option.
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         Intent intent;
         if(R.id.sign_out == item.getItemId()){
+            //Back to Sign-in Activity.
             AuthUI.getInstance()
                     .signOut(this);
             intent = new Intent(MainActivity.this,SignInActivity.class);
@@ -239,7 +216,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         mAdapter.startListening();
-        //mLinearLayoutManager.setStackFromEnd(true);
         mLinearLayoutManager.scrollToPosition(mAdapter.getItemCount());
     }
 

@@ -8,6 +8,7 @@ public class MyApp extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        //To retain data on OS reboot and across Application Lifecycle.
         FirebaseDatabase.getInstance().setPersistenceEnabled(true);
 
     }
