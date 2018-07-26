@@ -57,7 +57,7 @@ public class SignInActivity extends AppCompatActivity {
             if(resultCode == RESULT_OK){
 
                 mUser = FirebaseAuth.getInstance().getCurrentUser();
-                mDatabase = FirebaseDatabase.getInstance().getReference("users").child(mUser.getUid());
+                mDatabase = FirebaseDatabase.getInstance().getReference("users").child(mUser.getUid()).child("details");
                 mDatabase.child("name").setValue(mUser.getDisplayName());
                 mDatabase.child("emailId").setValue(mUser.getEmail());
 
