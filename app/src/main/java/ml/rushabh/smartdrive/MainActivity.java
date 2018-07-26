@@ -1,5 +1,7 @@
 package ml.rushabh.smartdrive;
 
+import android.app.SearchManager;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Parcelable;
 import android.os.PersistableBundle;
@@ -10,6 +12,7 @@ import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.format.DateFormat;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -22,6 +25,7 @@ import android.widget.Filter;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -40,22 +44,25 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class MainActivity extends AppCompatActivity {
 
     //Declaring Instances of widgets on Main Activity.
     private ImageButton mSend;
-    private ImageButton mSearch;
     private EditText mMessage;
     private RecyclerView mRecyclerView;
     private ProgressBar mProgressBar;
     private LinearLayoutManager mLinearLayoutManager;
+    private android.support.v7.widget.SearchView mSearchView;
 
     //Declaring Firebase Instances.
-    private FirebaseRecyclerAdapter mAdapter;
+    private MessageAdapter mAdapter;
     private FirebaseUser mUser;
     private DatabaseReference mDatabase;
 
-
+    private List<Message> mMessageList;
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -74,7 +81,7 @@ public class MainActivity extends AppCompatActivity {
             mProgressBar = (ProgressBar)findViewById(R.id.loading_pb);
             mMessage = (EditText) findViewById(R.id.message_ET);
             mSend = (ImageButton) findViewById(R.id.submit_btn);
-            mSearch = (ImageButton)findViewById(R.id.search_btn);
+
 
             //Setting Database reference.
             mDatabase = FirebaseDatabase.getInstance().getReference("users").child(mUser.getUid()).child("messages");
@@ -84,6 +91,8 @@ public class MainActivity extends AppCompatActivity {
             mLinearLayoutManager.setStackFromEnd(true);
             mRecyclerView.setHasFixedSize(true);
             mRecyclerView.setLayoutManager(mLinearLayoutManager);
+
+            mMessageList = new ArrayList<Message>();
 
             mSend.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -101,62 +110,21 @@ public class MainActivity extends AppCompatActivity {
             });
 
 
-            class MessageHolder extends RecyclerView.ViewHolder {
-
-                TextView messageTextView;
-                TextView timeTextView;
-
-                public MessageHolder(View itemView) {
-                    super(itemView);
-
-                    messageTextView = (TextView) itemView.findViewById(R.id.message_tv);
-                    timeTextView = (TextView) itemView.findViewById(R.id.time_tv);
-                }
-
-                public void setValues(Message message) {
-                    messageTextView.setText(message.getBody());
-                    timeTextView.setText(DateFormat.format("HH:mm",
-                            message.getTimeStamp()));
-                }
-            }
-
-
             Query query = mDatabase;
 
-            FirebaseRecyclerOptions<Message> options = new FirebaseRecyclerOptions.Builder<Message>()
-                    .setQuery(query, Message.class)
-                    .build();
-
-
-            mAdapter = new FirebaseRecyclerAdapter<Message, MessageHolder>(options){
-                @NonNull
-                @Override
-                public MessageHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-                    View view = LayoutInflater.from(parent.getContext())
-                            .inflate(R.layout.item_message, parent, false);
-                    return new MessageHolder(view);
-                }
-
-                @Override
-                protected void onBindViewHolder(@NonNull MessageHolder holder, int position, @NonNull Message model) {
-                    Message message = getItem(position);
-                    holder.setValues(message);
-                }
-
-                @Override
-                public int getItemCount() {
-                    return super.getItemCount();
-                }
-
-            };
-
+            mAdapter = new MessageAdapter(getApplicationContext(),mMessageList);
             mRecyclerView.setAdapter(mAdapter);
 
 
             ChildEventListener childEventListener = new ChildEventListener() {
                 @Override
                 public void onChildAdded(DataSnapshot dataSnapshot, String previousChildName) {
-                    mLinearLayoutManager.scrollToPosition(mAdapter.getItemCount());
+                    Message temp = dataSnapshot.getValue(Message.class);
+                    mMessageList.add(temp);
+                    Log.d("message list values", "onChildAdded: "+ mMessageList.size());
+                   mRecyclerView.scrollToPosition(mAdapter.getItemCount()-1);
+                   mAdapter.notifyDataSetChanged();
+
                 }
                 @Override
                 public void onChildChanged(DataSnapshot dataSnapshot, String previousChildName) {
@@ -192,6 +160,24 @@ public class MainActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater menuInflater = getMenuInflater();
         menuInflater.inflate(R.menu.main,menu);
+        SearchManager searchManager = (SearchManager)getSystemService(Context.SEARCH_SERVICE);
+        mSearchView = (android.support.v7.widget.SearchView) menu.findItem(R.id.action_search).getActionView();
+        mSearchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
+        mSearchView.setMaxWidth(Integer.MAX_VALUE);
+        mSearchView.setOnQueryTextListener(new android.support.v7.widget.SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                mAdapter.getFilter().filter(query);
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                mAdapter.getFilter().filter(newText);
+                return false;
+            }
+        });
+
         return true;
     }
 
@@ -208,6 +194,9 @@ public class MainActivity extends AppCompatActivity {
             finish();
 
         }
+        else if(item.getItemId() == R.id.action_search){
+            return true;
+        }
         return true;
     }
 
@@ -215,13 +204,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        mAdapter.startListening();
-        mLinearLayoutManager.scrollToPosition(mAdapter.getItemCount());
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        mAdapter.stopListening();
     }
 }
